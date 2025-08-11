@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>兑换码查询中心</title>
+    <!-- 引入Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入Font Awesome -->
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#8B5CF6',
+                        neutral: '#64748B'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- 自定义工具类 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+            }
+            .card-hover {
+                transition: transform 0.2s, box-shadow 0.2s;
+            }
+            .card-hover:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            }
+            .fade-in {
+                animation: fadeIn 0.5s ease-in-out;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen font-sans text-gray-800">
+    <!-- 顶部导航 -->
+    <nav class="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-10">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="#" class="flex items-center space-x-2">
+                        <i class="fa fa-gift text-primary text-2xl"></i>
+                        <span class="font-bold text-lg">兑换码中心</span>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button id="shareBtn" class="text-neutral hover:text-primary transition-colors text-sm flex items-center">
+                        <i class="fa fa-share-alt mr-1"></i> 分享
+                    </button>
+                    <button id="adminBtn" class="text-neutral hover:text-primary transition-colors text-sm flex items-center">
+                        <i class="fa fa-cog mr-1"></i> 管理
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mx-auto px-4 py-8 max-w-4xl">
+        <!-- 页面标题区 -->
+        <div class="text-center mb-10 mt-6">
+            <h1 class="text-[clamp(1.8rem,5vw,2.5rem)] font-bold text-gray-800 mb-3">
+                兑换码奖励查询
+            </h1>
+            <p class="text-neutral max-w-2xl mx-auto" id="pageDescription">
+                输入您获得的兑换码，查询对应的奖励内容和领取方式
+            </p>
+        </div>
+        
+        <!-- 分享弹窗 (默认隐藏) -->
+        <div id="shareModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+            <div class="bg-white rounded-xl p-6 max-w-md w-full fade-in">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">分享此页面</h3>
+                    <button id="closeShareModal" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">分享链接</label>
+                    <div class="flex">
+                        <input 
+                            type="text" 
+                            id="shareLink" 
+                            value="" 
+                            readonly
+                            class="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none"
+                        >
+                        <button id="copyLinkBtn" class="bg-primary text-white px-4 py-2 rounded-r-lg hover:bg-primary/90 transition-colors">
+                            复制
+                        </button>
+                    </div>
+                </div>
+                <div class="flex justify-center space-x-4 mb-4">
+                    <button class="share-platform bg-[#1877F2] text-white p-3 rounded-full hover:opacity-90 transition-opacity">
+                        <i class="fa fa-facebook"></i>
+                    </button>
+                    <button class="share-platform bg-[#1DA1F2] text-white p-3 rounded-full hover:opacity-90 transition-opacity">
+                        <i class="fa fa-twitter"></i>
+                    </button>
+                    <button class="share-platform bg-[#25D366] text-white p-3 rounded-full hover:opacity-90 transition-opacity">
+                        <i class="fa fa-whatsapp"></i>
+                    </button>
+                    <button class="share-platform bg-[#0A66C2] text-white p-3 rounded-full hover:opacity-90 transition-opacity">
+                        <i class="fa fa-linkedin"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-gray-500 text-center">
+                    分享给他人，让他们也能查询兑换码奖励
+                </p>
+            </div>
+        </div>
+        
+        <!-- 管理员登录 (默认隐藏) -->
+        <div id="adminLogin" class="hidden bg-white rounded-xl p-6 shadow-lg mb-8 fade-in card-shadow">
+            <h2 class="text-xl font-semibold mb-4 flex items-center">
+                <i class="fa fa-lock text-primary mr-2"></i>管理员登录
+            </h2>
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label for="adminPassword" class="block text-sm font-medium text-gray-700 mb-1">管理员密码</label>
+                    <input 
+                        type="password" 
+                        id="adminPassword" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                        placeholder="输入管理员密码"
+                        required
+                    >
+                </div>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            id="rememberMe" 
+                            class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded"
+                        >
+                        <label for="rememberMe" class="ml-2 block text-sm text-gray-700">
+                            记住登录状态
+                        </label>
+                    </div>
+                    <button 
+                        type="submit" 
+                        class="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-lg transition-colors flex items-center"
+                    >
+                        <i class="fa fa-sign-in mr-2"></i>登录
+                    </button>
+                </div>
+            </form>
+            <p id="loginError" class="mt-3 text-sm text-red-500 hidden">密码错误，请重试</p>
+        </div>
+        
+        <!-- 管理员区域 (默认隐藏) -->
+        <div id="adminPanel" class="hidden fade-in">
+            <div class="bg-white rounded-xl p-6 shadow-lg mb-8 card-shadow">
+                <div class="flex flex-wrap justify-between items-center mb-6">
+                    <h2 class="text-xl font-semibold flex items-center">
+                        <i class="fa fa-cogs text-primary mr-2"></i>兑换码管理面板
+                    </h2>
+                    <div class="flex space-x-3 mt-3 sm:mt-0">
+                        <button id="changePasswordBtn" class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1 rounded transition-colors">
+                            <i class="fa fa-key mr-1"></i>修改密码
+                        </button>
+                        <button id="logoutBtn" class="text-sm bg-red-100 hover:bg-red-200 text-red-700 px-3 py-1 rounded transition-colors">
+                            <i class="fa fa-sign-out mr-1"></i>退出登录
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 添加兑换码表单 -->
+                <div class="border-b border-gray-200 pb-6 mb-6">
+                    <h3 class="text-lg font-medium mb-4">添加/编辑兑换码</h3>
+                    <form id="codeForm" class="space-y-4">
+                        <input type="hidden" id="editCodeId" value="">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="codeValue" class="block text-sm font-medium text-gray-700 mb-1">兑换码 <span class="text-red-500">*</span></label>
+                                <input 
+                                    type="text" 
+                                    id="codeValue" 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                                    placeholder="例如：SUMMER2023"
+                                    required
+                                >
+                            </div>
+                            <div>
+                                <label for="rewardName" class="block text-sm font-medium text-gray-700 mb-1">奖励名称 <span class="text-red-500">*</span></label>
+                                <input 
+                                    type="text" 
+                                    id="rewardName" 
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                                    placeholder="例如：夏季限定礼包"
+                                    required
+                                >
+                            </div>
+                        </div>
+                        <div>
+                            <label for="rewardDescription" class="block text-sm font-medium text-gray-700 mb-1">奖励描述 <span class="text-red-500">*</span></label>
+                            <textarea 
+                                id="rewardDescription" 
+                                rows="2"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                                placeholder="详细描述奖励内容"
+                                required
+                            ></textarea>
+                        </div>
+                        <div>
+                            <label for="rewardInstructions" class="block text-sm font-medium text-gray-700 mb-1">领取方式 <span class="text-red-500">*</span></label>
+                            <textarea 
+                                id="rewardInstructions" 
+                                rows="2"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                                placeholder="说明如何领取奖励"
+                                required
+                            ></textarea>
+                        </div>
+                        <div class="flex space-x-3">
+                            <button 
+                                type="submit" 
+                                id="saveCodeBtn" 
+                                class="bg-secondary hover:bg-secondary/90 text-white font-medium py-2 px-6 rounded-lg transition-colors flex items-center"
+                            >
+                                <i class="fa fa-save mr-2"></i>保存兑换码
+                            </button>
+                            <button 
+                                type="button" 
+                                id="cancelEditBtn" 
+                                class="hidden bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-6 rounded-lg transition-colors"
+                            >
+                                取消编辑
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- 兑换码列表 -->
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-medium">兑换码列表</h3>
+                        <span id="codesCount" class="text-sm bg-blue-100 text-primary px-2 py-1 rounded-full">0 个兑换码</span>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead>
+                                <tr>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider rounded-tl-lg">兑换码</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">奖励名称</th>
+                                    <th class="px-4 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                    <th class="px-4 py-3 bg-gray-50 rounded-tr-lg"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="codesTableBody" class="bg-white divide-y divide-gray-200">
+                                <!-- 兑换码数据将通过JavaScript动态生成 -->
+                                <tr>
+                                    <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+                                        <i class="fa fa-inbox mb-2 block text-2xl"></i>
+                                        暂无兑换码数据
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 用户查询区域 -->
+        <div id="userArea">
+            <div class="bg-white rounded-xl p-6 shadow-lg mb-8 card-shadow card-hover">
+                <div class="flex items-center mb-6">
+                    <div class="bg-primary/10 p-3 rounded-full">
+                        <i class="fa fa-search text-primary text-xl"></i>
+                    </div>
+                    <h2 class="text-xl font-semibold ml-3">查询您的奖励</h2>
+                </div>
+                
+                <form id="redeemForm" class="space-y-5">
+                    <div>
+                        <label for="userInputCode" class="block text-sm font-medium text-gray-700 mb-1">请输入兑换码</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa fa-key text-gray-400"></i>
+                            </div>
+                            <input 
+                                type="text" 
+                                id="userInputCode" 
+                                class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                                placeholder="输入兑换码（区分大小写）"
+                                required
+                            >
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">提示：兑换码通常由字母和数字组成，区分大小写</p>
+                    </div>
+                    
+                    <button 
+                        type="submit" 
+                        class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center group"
+                    >
+                        <span>查询奖励</span>
+                        <i class="fa fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </button>
+                </form>
+            </div>
+            
+            <!-- 结果显示区域 -->
+            <div id="resultSection" class="hidden fade-in">
+                <!-- 成功结果 -->
+                <div id="successResult" class="hidden bg-white rounded-xl p-6 shadow-lg border-l-4 border-secondary card-shadow">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <div class="bg-secondary/10 p-3 rounded-full">
+                                <i class="fa fa-check-circle text-secondary text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="ml-4 flex-1">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-3">兑换码有效！</h3>
+                            <div class="bg-gray-50 p-5 rounded-lg border border-gray-100">
+                                <div class="mb-4 pb-4 border-b border-gray-100">
+                                    <h4 class="text-sm font-medium text-gray-500 mb-1">奖励名称</h4>
+                                    <p id="successRewardName" class="text-xl text-gray-800 font-medium"></p>
+                                </div>
+                                <div class="mb-4 pb-4 border-b border-gray-100">
+                                    <h4 class="text-sm font-medium text-gray-500 mb-1">奖励详情</h4>
+                                    <p id="successRewardDesc" class="text-gray-700"></p>
+                                </div>
+                                <div>
+                                    <h4 class="text-sm font-medium text-gray-500 mb-1">领取方式</h4>
+                                    <p id="successRewardMethod" class="text-gray-700"></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-center">
+                        <button id="checkAnotherBtn" class="text-primary hover:text-primary/80 font-medium transition-colors flex items-center">
+                            <i class="fa fa-refresh mr-1"></i> 查询另一个兑换码
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 错误结果 -->
+                <div id="errorResult" class="hidden bg-white rounded-xl p-6 shadow-lg border-l-4 border-red-500 card-shadow">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <div class="bg-red-500/10 p-3 rounded-full">
+                                <i class="fa fa-times-circle text-red-500 text-2xl"></i>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <h3 class="text-lg font-semibold text-gray-800 mb-2">兑换码无效</h3>
+                            <p id="errorMessage" class="text-gray-600">您输入的兑换码不存在或已过期，请检查是否正确。</p>
+                        </div>
+                    </div>
+                    <div class="mt-6 flex justify-center">
+                        <button id="tryAgainBtn" class="text-primary hover:text-primary/80 font-medium transition-colors flex items-center">
+                            <i class="fa fa-reply mr-1"></i> 重新输入
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 修改密码弹窗 (默认隐藏) -->
+    <div id="changePasswordModal" class="fixed inset-0 bg-black/50 z-50 hidden items-center justify-center p-4">
+        <div class="bg-white rounded-xl p-6 max-w-md w-full fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold">修改管理员密码</h3>
+                <button id="closePasswordModal" class="text-gray-400 hover:text-gray-600">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            <form id="changePasswordForm" class="space-y-4">
+                <div>
+                    <label for="currentPassword" class="block text-sm font-medium text-gray-700 mb-1">当前密码</label>
+                    <input 
+                        type="password" 
+                        id="currentPassword" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                        required
+                    >
+                </div>
+                <div>
+                    <label for="newPassword" class="block text-sm font-medium text-gray-700 mb-1">新密码</label>
+                    <input 
+                        type="password" 
+                        id="newPassword" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                        minlength="6"
+                        required
+                    >
+                </div>
+                <div>
+                    <label for="confirmPassword" class="block text-sm font-medium text-gray-700 mb-1">确认新密码</label>
+                    <input 
+                        type="password" 
+                        id="confirmPassword" 
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-colors"
+                        minlength="6"
+                        required
+                    >
+                </div>
+                <p id="passwordError" class="text-sm text-red-500 hidden"></p>
+                <button 
+                    type="submit" 
+                    class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                >
+                    保存新密码
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <footer class="bg-white/80 backdrop-blur-md mt-12 py-6 border-t border-gray-200">
+        <div class="container mx-auto px-4 max-w-4xl text-center text-gray-500 text-sm">
+            <p>兑换码查询中心 &copy; 2023 | 如有问题请联系管理员</p>
+        </div>
+    </footer>
+
+    <script>
+        // 初始化数据存储
+        if (!localStorage.getItem('redeemCodes')) {
+            localStorage.setItem('redeemCodes', JSON.stringify({}));
+        }
+        
+        // 设置默认管理员密码（首次使用）
+        if (!localStorage.getItem('adminPass')) {
+            // 首次使用的默认密码
+            localStorage.setItem('adminPass', 'admin123');
+            alert('首次使用提示：管理员默认密码为 "admin123"，请登录后及时修改');
+        }
+        
+        // DOM元素
+        const shareBtn = document.getElementById('shareBtn');
+        const shareModal = document.getElementById('shareModal');
+        const closeShareModal = document.getElementById('closeShareModal');
+        const shareLink = document.getElementById('shareLink');
+        const copyLinkBtn = document.getElementById('copyLinkBtn');
+        const adminBtn = document.getElementById('adminBtn');
+        const adminLogin = document.getElementById('adminLogin');
+        const adminPanel = document.getElementById('adminPanel');
+        const userArea = document.getElementById('userArea');
+        const loginForm = document.getElementById('loginForm');
+        const adminPassword = document.getElementById('adminPassword');
+        const loginError = document.getElementById('loginError');
+        const rememberMe = document.getElementById('rememberMe');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const codeForm = document.getElementById('codeForm');
+        const codeValue = document.getElementById('codeValue');
+        const rewardName = document.getElementById('rewardName');
+        const rewardDescription = document.getElementById('rewardDescription');
+        const rewardInstructions = document.getElementById('rewardInstructions');
+        const editCodeId = document.getElementById('editCodeId');
+        const saveCodeBtn = document.getElementById('saveCodeBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const codesTableBody = document.getElementById('codesTableBody');
+        const codesCount = document.getElementById('codesCount');
+        const redeemForm = document.getElementById('redeemForm');
+        const userInputCode = document.getElementById('userInputCode');
+        const resultSection = document.getElementById('resultSection');
+        const successResult = document.getElementById('successResult');
+        const errorResult = document.getElementById('errorResult');
+        const successRewardName = document.getElementById('successRewardName');
+        const successRewardDesc = document.getElementById('successRewardDesc');
+        const successRewardMethod = document.getElementById('successRewardMethod');
+        const errorMessage = document.getElementById('errorMessage');
+        const checkAnotherBtn = document.getElementById('checkAnotherBtn');
+        const tryAgainBtn = document.getElementById('tryAgainBtn');
+        const changePasswordBtn = document.getElementById('changePasswordBtn');
+        const changePasswordModal = document.getElementById('changePasswordModal');
+        const closePasswordModal = document.getElementById('closePasswordModal');
+        const changePasswordForm = document.getElementById('changePasswordForm');
+        const currentPassword = document.getElementById('currentPassword');
+        const newPassword = document.getElementById('newPassword');
+        const confirmPassword = document.getElementById('confirmPassword');
+        const passwordError = document.getElementById('passwordError');
+        const pageDescription = document.getElementById('pageDescription');
+        
+        // 状态变量
+        let isAdmin = false;
+        
+        // 初始化分享链接
+        shareLink.value = window.location.href;
+        
+        // 分享功能
+        shareBtn.addEventListener('click', () => {
+            shareModal.style.display = 'flex';
+        });
+        
+        closeShareModal.addEventListener('click', () => {
+            shareModal.style.display = 'none';
+        });
+        
+        // 点击模态框外部关闭
+        shareModal.addEventListener('click', (e) => {
+            if (e.target === shareModal) {
+                shareModal.style.display = 'none';
+            }
+        });
+        
+        // 复制链接功能
+        copyLinkBtn.addEventListener('click', () => {
+            shareLink.select();
+            document.execCommand('copy');
+            
+            // 显示复制成功提示
+            const originalText = copyLinkBtn.textContent;
+            copyLinkBtn.textContent = '已复制!';
+            setTimeout(() => {
+                copyLinkBtn.textContent = originalText;
+            }, 2000);
+        });
+        
+        // 社交媒体分享功能
+        document.querySelectorAll('.share-platform').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const platform = e.currentTarget.querySelector('i').classList[1].split('-')[1];
+                let url = '';
+                const title = '兑换码查询中心';
+                const text = '快来查询你的兑换码奖励吧！';
+                
+                switch(platform) {
+                    case 'facebook':
+                        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink.value)}`;
+                        break;
+                    case 'twitter':
+                        url = `https://twitter.com/intent/tweet?url=${encodeURIComponent(shareLink.value)}&text=${encodeURIComponent(text)}`;
+                        break;
+                    case 'whatsapp':
+                        url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text + ' ' + shareLink.value)}`;
+                        break;
+                    case 'linkedin':
+                        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareLink.value)}`;
+                        break;
+                }
+                
+                if (url) {
+                    window.open(url, '_blank', 'width=600,height=400');
+                }
+            });
+        });
+        
+        // 管理员登录/退出功能
+        adminBtn.addEventListener('click', () => {
+            if (isAdmin) {
+                // 如果已登录，直接进入管理面板
+                showAdminPanel();
+            } else {
+                // 否则显示登录界面
+                adminLogin.classList.toggle('hidden');
+                if (!adminLogin.classList.contains('hidden')) {
+                    adminPassword.focus();
+                }
+            }
+        });
+        
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const storedPassword = localStorage.getItem('adminPass');
+            
+            if (adminPassword.value === storedPassword) {
+                isAdmin = true;
+                adminLogin.classList.add('hidden');
+                loginError.classList.add('hidden');
+                
+                // 如果勾选了记住登录状态
+                if (rememberMe.checked) {
+                    localStorage.setItem('adminLoggedIn', 'true');
+                }
+                
+                showAdminPanel();
+            } else {
+                loginError.classList.remove('hidden');
+                adminPassword.focus();
+            }
+        });
+        
+        logoutBtn.addEventListener('click', () => {
+            isAdmin = false;
+            localStorage.removeItem('adminLoggedIn');
+            adminPanel.classList.add('hidden');
+            userArea.classList.remove('hidden');
+            pageDescription.textContent = '输入您获得的兑换码，查询对应的奖励内容和领取方式';
+            resetCodeForm();
+        });
+        
+        // 显示管理员面板
+        function showAdminPanel() {
+            adminPanel.classList.remove('hidden');
+            userArea.classList.add('hidden');
+            pageDescription.textContent = '管理员模式 - 管理所有兑换码和奖励';
+            loadCodes();
+        }
+        
+        // 加载兑换码列表
+        function loadCodes() {
+            const codes = JSON.parse(localStorage.getItem('redeemCodes'));
+            const codeList = Object.keys(codes);
+            
+            // 更新计数
+            codesCount.textContent = `${codeList.length} 个兑换码`;
+            
+            // 清空表格
+            codesTableBody.innerHTML = '';
+            
+            if (codeList.length === 0) {
+                codesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="px-4 py-8 text-center text-gray-500">
+                            <i class="fa fa-inbox mb-2 block text-2xl"></i>
+                            暂无兑换码数据
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // 填充表格
+            codeList.forEach(code => {
+                const reward = codes[code];
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-gray-50 transition-colors';
+                
+                row.innerHTML = `
+                    <td class="px-4 py-4 whitespace-nowrap">
+                        <div class="font-medium text-gray-900">${code}</div>
+                    </td>
+                    <td class="px-4 py-4">
+                        <div class="text-gray-700">${reward.name}</div>
+                        <div class="text-xs text-gray-500 mt-1 line-clamp-1">${reward.description}</div>
+                    </td>
+                    <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2">
+                            <button class="edit-code text-blue-600 hover:text-blue-900" data-code="${code}">
+                                <i class="fa fa-edit mr-1"></i>编辑
+                            </button>
+                            <button class="delete-code text-red-600 hover:text-red-900" data-code="${code}">
+                                <i class="fa fa-trash mr-1"></i>删除
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                codesTableBody.appendChild(row);
+            });
+            
+            // 添加编辑和删除事件
+            document.querySelectorAll('.edit-code').forEach(btn => {
+                btn.addEventListener('click', handleEditCode);
+            });
+            
+            document.querySelectorAll('.delete-code').forEach(btn => {
+                btn.addEventListener('click', handleDeleteCode);
+            });
+        }
+        
+        // 处理编辑兑换码
+        function handleEditCode(e) {
+            const code = e.currentTarget.getAttribute('data-code');
+            const codes = JSON.parse(localStorage.getItem('redeemCodes'));
+            const reward = codes[code];
+            
+            // 填充表单
+            editCodeId.value = code;
+            codeValue.value = code;
+            rewardName.value = reward.name;
+            rewardDescription.value = reward.description;
+            rewardInstructions.value = reward.instructions;
+            
+            // 更新按钮状态
+            saveCodeBtn.innerHTML = '<i class="fa fa-save mr-2"></i>更新兑换码';
+            cancelEditBtn.classList.remove('hidden');
+            
+            // 滚动到表单
+            codeForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        
+        // 处理删除兑换码
+        function handleDeleteCode(e) {
+            const code = e.currentTarget.getAttribute('data-code');
+            if (confirm(`确定要删除兑换码 "${code}" 吗？`)) {
+                const codes = JSON.parse(localStorage.getItem('redeemCodes'));
+                delete codes[code];
+                localStorage.setItem('redeemCodes', JSON.stringify(codes));
+                loadCodes();
+            }
+        }
+        
+        // 保存/更新兑换码
+        codeForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const code = codeValue.value.trim();
+            const name = rewardName.value.trim();
+            const description = rewardDescription.value.trim();
+            const instructions = rewardInstructions.value.trim();
+            
+            if (!code || !name || !description || !instructions) {
+                alert('请填写所有必填字段');
+                return;
+            }
+            
+            const codes = JSON.parse(localStorage.getItem('redeemCodes'));
+            const isEditMode = editCodeId.value !== '';
+            
+            // 检查兑换码是否已存在（新增模式）
+            if (!isEditMode && codes[code]) {
+                if (!confirm(`兑换码 "${code}" 已存在，是否覆盖？`)) {
+                    return;
+                }
+            }
+            
+            // 保存兑换码
+            codes[code] = {
+                name,
+                description,
+                instructions
+            };
+            
+            localStorage.setItem('redeemCodes', JSON.stringify(codes));
+            loadCodes();
+            resetCodeForm();
+            
+            // 显示成功提示
+            const message = isEditMode ? '兑换码已更新' : '兑换码已添加';
+            alert(message);
+        });
+        
+        // 重置兑换码表单
+        function resetCodeForm() {
+            codeForm.reset();
+            editCodeId.value = '';
+            saveCodeBtn.innerHTML = '<i class="fa fa-save mr-2"></i>保存兑换码';
+            cancelEditBtn.classList.add('hidden');
+        }
+        
+        // 取消编辑
+        cancelEditBtn.addEventListener('click', resetCodeForm);
+        
+        // 用户查询兑换码
+        redeemForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const code = userInputCode.value.trim();
+            const codes = JSON.parse(localStorage.getItem('redeemCodes'));
+            
+            resultSection.classList.remove('hidden');
+            
+            if (code && codes[code]) {
+                // 显示成功结果
+                const reward = codes[code];
+                successRewardName.textContent = reward.name;
+                successRewardDesc.textContent = reward.description;
+                successRewardMethod.textContent = reward.instructions;
+                
+                successResult.classList.remove('hidden');
+                errorResult.classList.add('hidden');
+            } else {
+                // 显示错误结果
+                successResult.classList.add('hidden');
+                errorResult.classList.remove('hidden');
+                
+                if (!code) {
+                    errorMessage.textContent = '请输入兑换码后再查询';
+                } else {
+                    errorMessage.textContent = '您输入的兑换码不存在或已过期，请检查是否正确。';
+                }
+            }
+            
+            // 滚动到结果区域
+            resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        
+        // 查询另一个兑换码
+        checkAnotherBtn.addEventListener('click', () => {
+            userInputCode.value = '';
+            resultSection.classList.add('hidden');
+            userInputCode.focus();
+        });
+        
+        // 重新输入
+        tryAgainBtn.addEventListener('click', () => {
+            userInputCode.value = '';
+            resultSection.classList.add('hidden');
+            userInputCode.focus();
+        });
+        
+        // 修改密码功能
+        changePasswordBtn.addEventListener('click', () => {
+            changePasswordModal.style.display = 'flex';
+            currentPassword.focus();
+        });
+        
+        closePasswordModal.addEventListener('click', () => {
+            changePasswordModal.style.display = 'none';
+            changePasswordForm.reset();
+            passwordError.classList.add('hidden');
+        });
+        
+        // 点击模态框外部关闭
+        changePasswordModal.addEventListener('click', (e) => {
+            if (e.target === changePasswordModal) {
+                closePasswordModal.click();
+            }
+        });
+        
+        // 提交密码修改
+        changePasswordForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const storedPassword = localStorage.getItem('adminPass');
+            const currentPass = currentPassword.value;
+            const newPass = newPassword.value;
+            const confirmPass = confirmPassword.value;
+            
+            // 验证
+            if (currentPass !== storedPassword) {
+                passwordError.textContent = '当前密码不正确';
+                passwordError.classList.remove('hidden');
+                return;
+            }
+            
+            if (newPass.length < 6) {
+                passwordError.textContent = '新密码长度不能少于6个字符';
+                passwordError.classList.remove('hidden');
+                return;
+            }
+            
+            if (newPass !== confirmPass) {
+                passwordError.textContent = '两次输入的新密码不一致';
+                passwordError.classList.remove('hidden');
+                return;
+            }
+            
+            // 保存新密码
+            localStorage.setItem('adminPass', newPass);
+            alert('密码已成功修改，请使用新密码登录');
+            closePasswordModal.click();
+            logoutBtn.click();
+        });
+        
+        // 页面加载时检查管理员登录状态
+        window.addEventListener('load', () => {
+            if (localStorage.getItem('adminLoggedIn') === 'true') {
+                isAdmin = true;
+                showAdminPanel();
+            }
+        });
+    </script>
+</body>
+</html>
